@@ -1,26 +1,25 @@
-import gc
-from pathlib import Path
+import sys
 
+import lightning as L
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import autocast, GradScaler
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm
 
-from models.sfcn import SFCN
-import pytorch_lightning as pl
+sys.path.append("/data/Data/multi-site-PD")
 
+from data.multi_site_pd import PDDataModule
+from image_models.sfcn import SFCN
+from torchmetrics.classification import BinaryAUROC
 
-from utils.datasets import TorchDataset as TD
+torch.set_float32_matmul_precision("medium")
 
 
-class LitSFCN(pl.LightningModule):
+class LitSFCN(L.LightningModule):
     def __init__(self, channel_number=[28, 58, 128, 256, 256, 64], output_dim=1):
         super().__init__()
         self.model = SFCN(output_dim=output_dim, channel_number=channel_number)
         self.criterion = nn.BCEWithLogitsLoss()
+        self.auroc = BinaryAUROC(thresholds=None)
 
     def forward(self, x):
         return self.model(x)
@@ -41,6 +40,14 @@ class LitSFCN(pl.LightningModule):
         self.log("val_loss", loss)
         return loss
 
+    def test_step(self, batch, batch_idx):
+        x, y = batch[0], batch[1]
+        y = torch.squeeze(y)
+        y_pred = nn.functional.sigmoid(self.model(x).squeeze())
+        auroc = self.auroc(y_pred, y)
+        self.log("test_auroc", auroc)
+        return auroc
+
     def configure_optimizers(self):
         optimizer = optim.AdamW(self.model.parameters(), lr=1e-5, weight_decay=1e-5)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -54,26 +61,23 @@ class LitSFCN(pl.LightningModule):
 
 
 def main():
-    train_path = "data/train"
-    val_path = "data/val"
-
-    batch_size = 8
-
-    train_loader = DataLoader(
-        TD(train_path), batch_size=batch_size, shuffle=True, num_workers=16
+    pd = PDDataModule(
+        "/data/Data/multi-site-PD/data.csv",
+        "/data/Data/multi-site-PD/images",
+        batch_size=8,
     )
-    val_loader = DataLoader(TD(val_path), batch_size=batch_size, num_workers=16)
 
     model = LitSFCN(output_dim=1, channel_number=[28, 58, 128, 256, 256, 64])
 
-    trainer = pl.Trainer(
+    trainer = L.Trainer(
         accelerator="gpu",
         devices=1,
-        max_epochs=100,
-        precision=16,
+        max_epochs=10,
+        precision="bf16-mixed",
     )
 
-    trainer.fit(model, train_loader, val_loader)
+    trainer.fit(model, pd)
+    trainer.test(model, pd)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,11 @@ import torch.nn.functional as F
 
 class SFCN(nn.Module):
     def __init__(
-        self, channel_number=[32, 64, 128, 256, 256, 64], output_dim=40, dropout=True
+        self,
+        channel_number=[32, 64, 128, 256, 256, 64],
+        output_dim=40,
+        avg_shape=[5, 5, 6],
+        dropout=True,
     ):
         super(SFCN, self).__init__()
         n_layer = len(channel_number)
@@ -31,7 +35,6 @@ class SFCN(nn.Module):
                     ),
                 )
         self.classifier = nn.Sequential()
-        avg_shape = [5, 6, 5]
         self.classifier.add_module("average_pool", nn.AvgPool3d(avg_shape))
         if dropout is True:
             self.classifier.add_module("dropout", nn.Dropout(0.5))

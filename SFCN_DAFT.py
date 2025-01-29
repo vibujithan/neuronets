@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from models.sfcn_daft import SFCN_DAFT
+from image_models.sfcn_daft import SFCN_DAFT
 
 
 from utils.datasets import TorchDataset as TD
