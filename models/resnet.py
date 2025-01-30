@@ -112,7 +112,7 @@ class ResNet(nn.Module):
         net.add_module("layer2", self._make_layer(block, c[2], layers[1], stride=2))
         net.add_module("layer3", self._make_layer(block, c[3], layers[2], stride=2))
         net.add_module("layer4", self._make_layer(block, c[4], layers[3], stride=2))
-        net.add_module("avgpool", nn.AvgPool3d([5, 6, 5], stride=1))
+        net.add_module("avgpool", nn.AvgPool3d([5, 5, 6], stride=1))
         if dropout is True:
             net.add_module("dropout", nn.Dropout(0.5))
         self.feature_extractor = net
@@ -151,7 +151,6 @@ class ResNet(nn.Module):
         x = self.feature_extractor(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-        x = F.log_softmax(x)
         return x
 
 

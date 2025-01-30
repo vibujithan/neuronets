@@ -1,23 +1,21 @@
-import sys
+from abc import ABC
 
 import lightning as L
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-sys.path.append("/data/Data/multi-site-PD")
+from torchmetrics.classification import BinaryAUROC
 
 from data.multi_site_pd import PDDataModule
-from image_models.sfcn import SFCN
-from torchmetrics.classification import BinaryAUROC
+from models.resnet import resnet18
+from models.sfcn import SFCN
 
 torch.set_float32_matmul_precision("medium")
 
 
-class LitSFCN(L.LightningModule):
-    def __init__(self, channel_number=[28, 58, 128, 256, 256, 64], output_dim=1):
+class LitClassifier(L.LightningModule, ABC):
+    def __init__(self):
         super().__init__()
-        self.model = SFCN(output_dim=output_dim, channel_number=channel_number)
         self.criterion = nn.BCEWithLogitsLoss()
         self.auroc = BinaryAUROC(thresholds=None)
 
@@ -60,6 +58,18 @@ class LitSFCN(L.LightningModule):
         }
 
 
+class LitSFCN(LitClassifier):
+    def __init__(self, output_dim=1, channel_number=[28, 58, 128, 256, 256, 64]):
+        super().__init__()
+        self.model = SFCN(output_dim=output_dim, channel_number=channel_number)
+
+
+class LitResNet(LitClassifier):
+    def __init__(self, num_classes=1):
+        super().__init__()
+        self.model = resnet18(num_classes=num_classes)
+
+
 def main():
     pd = PDDataModule(
         "/data/Data/multi-site-PD/data.csv",
@@ -67,7 +77,7 @@ def main():
         batch_size=8,
     )
 
-    model = LitSFCN(output_dim=1, channel_number=[28, 58, 128, 256, 256, 64])
+    model = LitResNet()
 
     trainer = L.Trainer(
         accelerator="gpu",
