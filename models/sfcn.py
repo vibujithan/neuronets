@@ -1,6 +1,4 @@
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class SFCN(nn.Module):
@@ -41,9 +39,9 @@ class SFCN(nn.Module):
         i = n_layer
         in_channel = channel_number[-1]
         out_channel = output_dim
-        self.classifier.add_module(
-            "conv_%d" % i, nn.Conv3d(in_channel, out_channel, padding=0, kernel_size=1)
-        )
+
+        self.classifier.add_module("flatten", nn.Flatten())
+        self.classifier.add_module("fc", nn.Linear(in_channel, out_channel))
 
     @staticmethod
     def conv_layer(

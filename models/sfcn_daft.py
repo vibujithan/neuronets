@@ -77,7 +77,7 @@ class SFCN_DAFT(nn.Module):
 
         self.classifier = nn.Sequential()
 
-        avg_shape = [5, 6, 5]
+        avg_shape = [5, 5, 6]
         self.classifier.add_module("average_pool", nn.AvgPool3d(avg_shape))
 
         if dropout is True:
