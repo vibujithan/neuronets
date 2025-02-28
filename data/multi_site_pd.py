@@ -16,7 +16,9 @@ class PDDataModule(L.LightningDataModule):
         self.csv = csv
         self.img_dir = img_dir
         self.batch_size = batch_size
-        self.transform = transforms.Compose([transforms.ToTensor()])
+        self.transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
+        )
 
     def prepare_data(self):
         df = pd.read_csv(self.csv)

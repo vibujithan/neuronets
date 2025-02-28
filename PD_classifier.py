@@ -70,9 +70,14 @@ class LitClassifier(L.LightningModule, ABC):
 
 
 class LitSFCN(LitClassifier):
-    def __init__(self, output_dim=1, channel_number=[28, 58, 128, 256, 256, 64]):
+    def __init__(
+        self, output_dim=1, channel_number=[28, 58, 128, 256, 256, 64], pretrained=None
+    ):
         super().__init__()
-        self.model = SFCN(output_dim=output_dim, channel_number=channel_number)
+        if pretrained is not None:
+            self.model = LitSFCN.load_from_checkpoint(pretrained)
+        else:
+            self.model = SFCN(output_dim=output_dim, channel_number=channel_number)
 
 
 class LitResNet(LitClassifier):
@@ -142,7 +147,9 @@ def main():
         batch_size=8,
     )
 
-    model = LitSFCN()
+    model = LitSFCN(
+        pretrained="lightning_logs/LitSFCN/version_2/checkpoints/epoch=16-step=629.ckpt"
+    )
 
     logger = TensorBoardLogger("lightning_logs", name=model.__class__.__name__)
 
